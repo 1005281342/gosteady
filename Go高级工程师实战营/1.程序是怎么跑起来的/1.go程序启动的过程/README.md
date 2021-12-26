@@ -127,5 +127,75 @@
 
    重命名可执行文件`mv $WORK/b001/exe/a.out main`
 
-   
+
+
+
+## 执行
+
+### 可执行文件
+
+Linux的可执行文件为`ELF(Executable and Linkable Format)`
+
+由`ELF header`、`Section header`和`Sections`三部分构成
+
+[elf101.pdf](https://github.com/corkami/pics/blob/28cb0226093ed57b348723bc473cea0162dad366/binary/elf101/elf101.pdf)
+
+### 执行步骤
+
+1. 解析`ELF header`
+2. 加载文件内容至内存
+3. 从`entry point`开始执行代码
+
+通过`readelf`查看`entry point`：
+
+```shell
+[root@bdb892eb3ea4 /]# readelf -h main
+ELF Header:
+  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF64
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           Advanced Micro Devices X86-64
+  Version:                           0x1
+  Entry point address:               0x465760
+  Start of program headers:          64 (bytes into file)
+  Start of section headers:          456 (bytes into file)
+  Flags:                             0x0
+  Size of this header:               64 (bytes)
+  Size of program headers:           56 (bytes)
+  Number of program headers:         7
+  Size of section headers:           64 (bytes)
+  Number of section headers:         23
+  Section header string table index: 3
+```
+
+通过`dlv`找到go进程启动位置：
+
+```shell
+[root@bdb892eb3ea4 /]# dlv exec ./main
+Type 'help' for list of commands.
+(dlv) b *0x465760
+Breakpoint 1 set at 0x465760 for _rt0_amd64_linux() .usr/lib/golang/src/runtime/rt0_linux_amd64.s:8
+```
+
+**可以看见是从`runtime`中启动的**
+
+
+
+## runtime
+
+而在程序运行时自动 加载/运行的一些模块。诸如python、java等语言没有runtime。
+
+runtime主要包括：scheduler、netpoll、memory management、garbage collector等四个模块，其中scheduler负责串联整个runtime。
+
+
+
+## 协程
+
+当使用go func() { // ...}时，实际上是提交了一个任务给runtime scheduler。
+
+[将在这里持续整理](https://1005281342.gitbook.io/gofun/go-xie-cheng/goroutine)
 
