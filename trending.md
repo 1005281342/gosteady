@@ -1,3 +1,19 @@
+
+## 20220106
+
+云原生分布式SQL数据库
+https://github.com/cockroachdb/cockroach
+
+用于收集、处理、聚合和编写指标的代理
+https://github.com/influxdata/telegraf
+
+go 2D游戏库
+https://github.com/hajimehoshi/ebiten
+
+监控采集
+https://github.com/open-telemetry/opentelemetry-go
+https://github.com/open-telemetry/opentelemetry-collector-contrib
+
 ## 20220105
 
 压缩docker镜像大小
