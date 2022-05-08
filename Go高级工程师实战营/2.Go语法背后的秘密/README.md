@@ -73,7 +73,7 @@ TEXT main.main(SB) /x.go
   x.go:3		0x45ecb4		ebaa			JMP main.main(SB)
 ```
 
-**main函数由包信息，并且指令偏移起点飞0x0000**
+**main函数由包信息，并且指令偏移起点非0x0000**
 
 ### go compile和go tool objdump的区别
 
