@@ -169,6 +169,22 @@ func NewTimer(d Duration) *Timer {
 // 所以对于Ticker来说需要在确定不再使用定时器的时候主动Stop
 ```
 
+### 关于startTimer等函数的实现
+
+在go time源码中有如下4个函数
+
+```go
+func startTimer(*runtimeTimer)
+func stopTimer(*runtimeTimer) bool
+func resetTimer(*runtimeTimer, int64) bool
+func modTimer(t *runtimeTimer, when, period int64, f func(interface{}, uintptr), arg interface{}, seq uintptr)
+
+```
+
+emm...啊这，貌似看不了实现啊，借助goland进行搜索，发现实现逻辑在runtime/time中，是通过编译指令`linkname`绑定的。
+
+![](README.assets/image-20220511233458264-2283305.png)
+
 
 
 ### 错误的Stop方式导致死锁
