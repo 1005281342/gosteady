@@ -73,3 +73,33 @@
 
 ![](3_docker核心技术.assets/image-20220912210839303.png)
 
+
+
+## 容器
+
+### 容器标准（OCI）
+
+**OCI 全称是Open Container Initiative**
+
+#### 两个规范
+
+规范1：Runtime Specification 文件系统包如何解压至硬盘，共运行时运行
+
+规范2：Image Specification 如何通过构建系统打包，生成镜像清单（Manifest）、文件系统序列化文件、镜像配置。
+
+### 容器主要特性
+
+- 安全性
+- 隔离性（基于namespace）
+- 便携性
+- 可配额（基于CGroup）
+
+### namespace
+
+Linux Namespace 是一种 Linux Kernel 提供的资源隔离方案
+
+- 系统可以以进程分配不同的 Namespace
+- 并保证不同的 Namespace 资源独立分配、进程彼此隔离，即不同的 Namespace 下的进程互不干扰
+
+
+
