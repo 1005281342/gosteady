@@ -101,5 +101,15 @@ Linux Namespace 是一种 Linux Kernel 提供的资源隔离方案
 - 系统可以以进程分配不同的 Namespace
 - 并保证不同的 Namespace 资源独立分配、进程彼此隔离，即不同的 Namespace 下的进程互不干扰
 
+### cgroups
 
+CGroups（Control Groups）是Linux下用于对一个或一组进程进行资源控制和监控的机制
 
+- 可以对如 CPU 使用时间、内存、磁盘I/O 等进程所需资源进行限制
+- 不同资源的具体管理工作由相应的 CGroup 子系统来实现
+- 不同类型的资源限制，只要将限制策略在不同的子系统上进行关联
+- CGroup 在不同的系统资源管理子系统中以层级树的方式来组织管理：每个 CGroup 都可以包含其他的子 CGroup。子 CGroup 能使用的资源除了受本 CGroup 配置的资源参数限制，还受到父 CGroup 设置的资源限制
+
+#### 可配额/可度量 的资源
+
+![](3_docker核心技术.assets/image-20220921000729013.png)
