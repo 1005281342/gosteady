@@ -130,3 +130,31 @@ nr_throttled：在经过的周期内，有多少次因为进程在指定的时�
 
 throttled_time：cgroup 中的进程被限制使用 CPU 的总用时，单位是 ns （纳秒）
 
+### Linux 调度器
+
+内核默认提供了5个调度器，Linux 内核使用 struct sched_class 来对调度器进行抽象：
+
+- stop 调度器，stop_sched_class：优先级最高的调度类，可以抢占其他所有进程，不能被其他进程抢占
+- deadline 调度器，dl_sched_class：使用红黑树，把进程按照绝对截止期限进行排序，选择最小进程调度运行
+- RT 调度器，rt_sched_class：实时调度器，为每个优先级维护一个队列
+- CFS 调度器，cfs_sched_class：完全公平调度器，采用完全公平调度算法，引入虚拟运行时间概念
+- IDLE-Task 调度器，idle_sched_class：空闲调度器，每个 CPU 都会有一个 idle 线程，当没有其他进程可以调度时，调度运行 idle 线程
+
+### CFS 调度器
+
+CFS 调度全称是 Completely Fair Scheduler，即完全公平调度器
+
+- 维护为任务提供处理器时间方面的平衡
+- 通过虚拟运行时间（vruntime）来实现平衡，维护提供给某个任务的时间量；vruntime = 实际运行时间*1024 / 进程权重，进程权重越大真是运行的时间则越长
+
+#### vruntime
+
+CFS 调度器维护以虚拟运行时间作为顺序的红黑树来调度进程。
+
+#### CFS 进程调度
+
+1. 在时钟周期开始时，调度器调用`__schedule()`函数来开始调度的运行
+2. `__schedule()`函数调用`pick_next_task()`让进程调度器从就绪队列`vruntime`消耗最小的进程，也就是红黑树最左边的节点
+3. 通过`context_switch()`切换到新的地址空间，保证被调度到进程运行
+4. 在时钟周期结束时，调度器通过`entity_tick()`函数来更新进程负载、进程状态以及`vruntime`
+5. 最后，比较当前进程的`vruntime`和就绪队列红黑树中最左边（vruntime最小的）的进程比较vruntime，如果小于，则继续执行当前进程，如果大于则将最左边的节点置换出来调度，然后出发红黑树再平衡
