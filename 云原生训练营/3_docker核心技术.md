@@ -113,3 +113,20 @@ CGroups（Control Groups）是Linux下用于对一个或一组进程进行资源
 #### 可配额/可度量 的资源
 
 ![](3_docker核心技术.assets/image-20220921000729013.png)
+
+### CPU 子系统
+
+cpu.shares：可出让的能获得 CPU 使用时间的相对值
+
+cpu.cfs_period_us：配置时间周期长度，单位为 us （微秒）
+
+cpu.cfs_quota_us：配置当前cgroup在 cfs_period_us 时间内最多能使用的 CPU 时间数，单位 us （微秒）
+
+cpu.stat：cgroup 内的进程使用的 CPU 时间统计
+
+nr_periods：经过 cpu.cfs_period_us 的时间周期数量
+
+nr_throttled：在经过的周期内，有多少次因为进程在指定的时间周期内用光了配额时间而受到限制
+
+throttled_time：cgroup 中的进程被限制使用 CPU 的总用时，单位是 ns （纳秒）
+
