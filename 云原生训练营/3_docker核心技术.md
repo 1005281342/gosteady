@@ -158,3 +158,11 @@ CFS 调度器维护以虚拟运行时间作为顺序的红黑树来调度进程�
 3. 通过`context_switch()`切换到新的地址空间，保证被调度到进程运行
 4. 在时钟周期结束时，调度器通过`entity_tick()`函数来更新进程负载、进程状态以及`vruntime`
 5. 最后，比较当前进程的`vruntime`和就绪队列红黑树中最左边（vruntime最小的）的进程比较vruntime，如果小于，则继续执行当前进程，如果大于则将最左边的节点置换出来调度，然后出发红黑树再平衡
+
+### Memory 子系统
+
+- memory.usage_in_bytes：cgroup 下进程使用的内存，包含 cgroup 及其 cgroup 下的进程使用的内存。
+- memory.max_usage_in_bytes：cgroup 下进程使用内存的最大值，包含子 cgroup 的内存使用量。
+- memory.limit_in_bytes：设置 Cgroup 下进程最多能使用的内存。如果设置为 -1，表示对该 cgroup 的内存使用不做限制。
+- memory.soft_limit_in_bytes：这个限制并不会阻止进程使用超过限额的内存，只是在系统内存足够时，会优先回收超过限额的内存，使之向限定值靠拢。
+- memory.oom_control：设置是否在 Cgroup 中使用 OOM(Out of Memory)Killer，默认为使用。当属于该 cgroup 的进程使用的内存超过最大的限定值时， 会立刻被 OOM Killer 处理。
