@@ -180,5 +180,72 @@ CFS 调度器维护以虚拟运行时间作为顺序的红黑树来调度进程�
 
 在 systemd 作为 init system 的系统中，默认并存着两套 groupdriver，这会使得系统中 docker 和 ku belet 管理的进程被 cgroupfs 驱动管，而 systemd 拉起的服务由 systemd 驱动管，让 cgroup 管理混乱且容易在资源紧缺时引发问题。**因此 kubelet 会默认 --cgroup-driver=systemd，若运行时 cgroup 不一致时，kubelet 会报错。**
 
+## 文件系统
 
+### Union FS
+
+- 将不同目录挂载到同一虚拟文件系统下的文件系统
+- 支持为每一个成员目录设定 `readonly`、`readwrite`、`whiteout-able` 权限
+- 文件系统分层，对 `readonly` 权限的 branch 可以逻辑上进行修改（增量地，不影响`readonly` 部分的）
+- 通常 Union FS 有两个用途，一方面可以将多个 disk 挂到同一个目录下，另一个更常用的就是将一个`readonly`的 branch 和一个 `writeable` 的 branch 联合在一起
+
+### 容器镜像
+
+![](3_docker核心技术.assets/image-20220925163247758.png)
+
+### Docker 的文件系统
+
+典型的 Linux 文件系统组成：
+
+- bootfs（boot file system）
+  - Bootloader 引导加载 kernel
+  - Kernel 当 kernel 被加载到内存中后 umount bootfs
+
+- rootfs（root file system）
+  - /dev，/proc，/bin，/etc 等标准目录和文件
+
+**对于不同的 linux 发行版，bootfs 基本是一致的，但 rootfs 会有差别**
+
+### Docker 启动
+
+Linux 在启动后，首先将 rootfs 设置为 `readonly`，进行一系列检查，然后将其切换为 `readwrite` 供用户使用。
+
+Docker 是：
+
+- 初始化将 rootfs 以 readonly 方式加载并检查，接着利用 union mount 的方式将一个 readwrite 文件系统挂载在 readonly 的 rootfs 之上
+- 并且允许再次将下层的 FS（file system）设定为 readonly 并且向上叠加
+- 这样一组 readonly 和一个 writeable 的结构构成一个 container 的运行时态，每一个 FS 在 Docker 中被称作一个 FS 层
+
+### 写操作
+
+由于镜像具有共享特性，所以对容器可写层的操作需要依赖存储驱动提供的`写时复制`和`用时分配`机制，以此来支持对容器可写层的修改，进而提高对存储和内存资源的利用率。
+
+- 写时复制（Copy-on-Write）
+  - 一个镜像可以被多个容器使用，但是不需要在内存和磁盘上做多个拷贝
+  - 在需要对镜像提供的文件进行修改时，该文件会从镜像的文件系统被复制到容器的可写层的文件系统进行修改，而镜像里面的文件不会改变
+  - 不同容器对文件的修改都相互独立、互不影响
+
+- 用时分配
+  - 按需分配空间，而非提前分配，即当一个文件被创建出来后，才会分配空间
+
+### 容器存储驱动
+
+目前主流使用 OverlayFS
+
+![存储驱动](3_docker核心技术.assets/image-20220925165340953.png)
+
+
+
+![各存储驱动优缺点及应用场景](3_docker核心技术.assets/image-20220925165446596.png)
+
+#### OverlayFS 
+
+OverlayFS 也是一种与 AUFS 类似的联合文件系统，同样属于文件级的存储驱动，包含了最初的 Overlay 和更稳定的 OverlayFS2
+
+![](3_docker核心技术.assets/image-20220925165733644.png)
+
+Overlay 只有两层：
+
+- lower层：代表镜像层
+- upper层：代码容器可写层
 
