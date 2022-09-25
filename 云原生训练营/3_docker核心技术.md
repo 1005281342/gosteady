@@ -166,3 +166,19 @@ CFS 调度器维护以虚拟运行时间作为顺序的红黑树来调度进程�
 - memory.limit_in_bytes：设置 Cgroup 下进程最多能使用的内存。如果设置为 -1，表示对该 cgroup 的内存使用不做限制。
 - memory.soft_limit_in_bytes：这个限制并不会阻止进程使用超过限额的内存，只是在系统内存足够时，会优先回收超过限额的内存，使之向限定值靠拢。
 - memory.oom_control：设置是否在 Cgroup 中使用 OOM(Out of Memory)Killer，默认为使用。当属于该 cgroup 的进程使用的内存超过最大的限定值时， 会立刻被 OOM Killer 处理。
+
+### cgroup driver
+
+#### systemd
+
+- 当操作系统使用 systemd 作为 init system 时，初始化进程生成一个根 cgroup 目录结构并作为 cgroup 管理器
+- Systemd 与 cgroup 紧密结合，并且为每个 systemd unit 分配 cgroup
+
+#### cgroupfs
+
+- docker 默认用 cgroupfs 作为 cgroup 驱动
+
+在 systemd 作为 init system 的系统中，默认并存着两套 groupdriver，这会使得系统中 docker 和 ku belet 管理的进程被 cgroupfs 驱动管，而 systemd 拉起的服务由 systemd 驱动管，让 cgroup 管理混乱且容易在资源紧缺时引发问题。**因此 kubelet 会默认 --cgroup-driver=systemd，若运行时 cgroup 不一致时，kubelet 会报错。**
+
+
+
