@@ -5,14 +5,14 @@
 ```
 sched.Run
   sched.scheduleOne
-    sched.frameworkForPod（根据名字获取调度器）
-    sched.skipPodSchedule（是否跳过本次调度）
-    sched.Algorithm.Schedule（执行调度，默认使用通用调度器）
-    sched.assume（pod和node的绑定信息更新缓存）
-    fwk.RunReservePluginsReserve（预扣除资源，如扣除磁盘资源之类的）
-    fwk.RunPermitPlugins（权限校验）
-    sched.SchedulingQueue.Activate（推送pod到ActivateQ）
-    go sched.bind（异步绑定）
+    sched.frameworkForPod
+    sched.skipPodSchedule
+    sched.Algorithm.Schedule
+    sched.assume
+    fwk.RunReservePluginsReserve
+    fwk.RunPermitPlugins
+    sched.SchedulingQueue.Activate
+    go sched.bind
 ```
 
 ### 通用调度器
