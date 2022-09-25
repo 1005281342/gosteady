@@ -249,3 +249,7 @@ Overlay 只有两层：
 - lower层：代表镜像层
 - upper层：代码容器可写层
 
+## Docker 引擎架构
+
+![](3_docker核心技术.assets/image-20220925180931204.png)
+
