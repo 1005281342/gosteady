@@ -253,3 +253,19 @@ Overlay 只有两层：
 
 ![](3_docker核心技术.assets/image-20220925180931204.png)
 
+## 网络
+
+- Null（--net=None）
+  - 把容器放入独立的网络空间但不做任何网络配置
+  - 用户需要通过运行 `docker network` 命令来完成网络配置
+- Host
+  - 使用主机网络名空间，复用主机网络
+- Container
+  - 重用其他容器的网络
+- Bridge（--net=bridge）
+  - 使用 `Linux` 网桥和 `iptables` 提供容器互联，`Docker` 在每台主机上创建一个名叫 `docker0` 的网桥，通过 `veth pair` 来连接该主机的每一个 `EndPoint`
+- Overlay（libnetwork，libkv）
+  - 通过网络封装包实现
+- Remote（work with remote drivers）
+  - Underlay：使用现有底层网络，为每一个容器配置可路由的网络IP
+  - Overlay：通过网络封装包实现（不同主机上的`pod`将通过`flanneld`将其流量封装在 UDP 数据包中）
