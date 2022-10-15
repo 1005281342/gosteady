@@ -161,3 +161,44 @@ Kubernetes 的所有管理能力构建在对象抽象的基础上，核心对象
 
 - kubelet：负责调度到对应节点的 Pod 的生命周期管理，执行任务并将 Pod 状态报告给主节点的渠道，通过容器运行时（拉取镜像、启动和停止容器等）来运行这些容器。它还会定期执行被请求的容器的健康探测程序。
 - kube-proxy：负责节点的网络，在主机上维护网络规则并执行连接转发。还负责对正在服务的 pods 进行负载均衡。
+
+## Kubernetes 生态系统
+
+![](4_kubernetes架构原则和对象设计.assets/image-20221015174028703.png)
+
+## Kubernetes 设计理念
+
+### 高可用
+
+- 基于 replica-set，stateful-set 的应用高可用
+- Kubernetes 组件本身高可用
+
+### 安全
+
+- 基于 TLS 提供服务
+- 基于 Namespace 的隔离
+- Taints，network-policy 等
+- 不同级别账号及认证
+
+### 可扩展性
+
+- 基于 CRD 的扩展
+- 插件化的生态系统
+
+### 可移植性
+
+- 多种 host-OS 选择
+- 多种基础架构的选择
+- 多云和混合云
+
+## 分层架构
+
+![](4_kubernetes架构原则和对象设计.assets/image-20221015175045797.png)
+
+- 核心层：Kubernetes 最核心的功能，对外提供 API 构建高层的应用，对内提供插件式应用执行环境。
+- 应用层：部署（无状态应用、有状态应用、批处理任务、集群应用等）和路由（服务发现、DNS 解析等）
+- 管理层：系统度量（如基础设施、容器和网络的度量）、自动化（如自动扩展、动态 provision 等）、策略管理（RBAC、Quota、PSP、NetworkPolicy）
+- 接口层：Kubectl 命令行工具、客户端 SDK 以及集群联邦。
+- 生态系统：在接口层之上的庞大容器集群管理调度的生态系统，可以划分为两个范畴：
+  - Kubernetes 外部：日志、监控、配置管理、CI、CD、Workflow、FaaS、OTS 应用、ChatOps 等
+  - Kubernetes 内部：CRI、CNI、CVI、镜像仓库、Cloud-Provider、集群自身的配置和管理等。
