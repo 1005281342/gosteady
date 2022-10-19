@@ -47,3 +47,27 @@ etcd 是一个`键值存储`的组件
 - 用户修改配置，发布消息
 - 服务 watcher 订阅到数据变更，做出响应
 
+
+
+## Raft 协议
+
+Raft 协议基于 `quorum` 机制，即大多数同意原则，任何的变更都需要超过半数的成员确认
+
+![](5_kubernetes控制平面组件etcd.assets/image-20221018234534570.png)
+
+### 相关资料
+
+理解分布式共识协议 Raft http://thesecretlivesofdata.com/raft/
+
+https://raft.github.io/raft.pdf
+
+https://raft.github.io/
+
+https://github.com/maemual/raft-zh_cn/blob/master/raft-zh_cn.md
+
+### 理解
+
+#### 集群选主
+
+**集群个数应该是素数个，避免出现多个候选节点拉票得票数一样的情况**
+
