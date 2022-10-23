@@ -162,3 +162,9 @@ etcd v3 store 分为两部分，一部分是内存中的索引 kvindex 是基于
 适用于读多写少的场景。
 
 ![](5_kubernetes控制平面组件etcd.assets/image-20221022220822365.png)
+
+#### Watch 机制
+
+etcd v3 的 watch 机制支持按 key watch（只监听某个 key 的变更），也支持 range watch（监听有某个前缀的 key 集合的所有变更）
+
+每个 WatchableStore 包含两种 watcherGroup，一种是 synced 表示该 group 的 watcher 数据都已经同步完毕，在等待新的变更；一种是 unsynced，表示该 group 的 watcher 数据同步落后于当前最新的变更，还在追赶。
