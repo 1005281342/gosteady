@@ -166,3 +166,92 @@ roleRef:
 - SystemAccount 是开发者（kubernetes develope r或者 domain developer）创建应用后，应用于 apiserver 通讯需要的身份
 - 用户可以创建自定的 ServiceAccount，kubernetes 也为每个 namespace 创建 default ServiceAccount
 - Default ServiceAccount 通常需要给定权限以后才能对 apiserver 做写操作
+
+
+
+## 准入
+
+### 准入控制
+
+准入控制是在授权后对请求做进一步的验证或添加默认参数。
+
+不同于授权和认证只关心请求的用户和操作，准入控制还处理请求的内容，并且仅对创建、更新、删除或连接（如代理）等有效性，而对读操作无效。
+
+准入控制支持同时开启多个插件，它们依次调用，只有全部插件都通过的请求才可以放入系统。
+
+### 准入控制插件
+
+#### 默认准入插件
+
+- AlwaysAdmit: 接受所有请求。
+- AlwaysPullImages: 总是拉取最新镜像。在多租户场景下非常有用。
+- DenyEscalatingExec: 禁止特权容器的exec和attach操作。
+- ImagePolicyWebhook: 通过webhook决定image策略，需要同时配置--admission-control- config-file
+- ServiceAccount: 自动创建默认ServiceAccount，并确保Pod引用的ServiceAccount已经存在
+- SecurityContextDeny: 拒绝包含非法SecurityContext配置的容器
+- ResourceQuota: 限制Pod的请求不会超过配额，需要在namespace中创建一个 ResourceQuota对象
+- LimitRanger: 为Pod设置默认资源请求和限制，需要在namespace中创建一个LimitRange对象
+- InitialResources: 根据镜像的历史使用记录，为容器设置默认资源请求和限制
+- NamespaceLifecycle: 确保处于termination状态的namespace不再接收新的对象创建请求， 并拒绝请求不存在的namespace
+- DefaultStorageClass: 为PVC设置默认StorageClass 
+- DefaultTolerationSeconds: 设置Pod的默认forgiveness toleration为5分钟 
+- PodSecurityPolicy: 使用Pod Security Policies时必须开启
+- NodeRestriction: 限制kubelet仅可访问node、endpoint、pod、service以及secret、 configmap、PV和PVC等相关的资源
+
+#### 扩展插件
+
+Kubernetes 预留了准入控制插件的扩展点，用户可自定义准入控制插件实现自定义准入功能
+
+`MutatingWebhookConfiguration`：变形插件，支持对准入对象的修改
+
+`ValidatingWebhookConfiguration`：校验插件，只能对准入对象合法性进行校验，不能修改
+
+<img src="6_kubernetes控制平面组件api-server.assets/image-20221024113854309.png" style="zoom:50%;" />
+
+### 开发准入控制插件
+
+#### 为资源增加自定义属性
+
+作为多租户集群方案中的一环，我们需要在 namespace 的准入控制中，获取用户信息，并将更新用户信息 namespace 的 annotation。
+
+只有当 namespace 中有有效用户信息时，我们才可以在 namespace 创建时，自动绑定用户权限，namespace 才可用。
+
+```yaml
+apiVersion: admissionregistration.k8s.io/v1beta1 
+kind: MutatingWebhookConfiguration 
+metadata:
+	name: ns-mutating.webhook.k8s.io 
+webhooks:
+- clientConfig:
+		caBundle: {{.serverca_base64}}
+		url: https://admission.local.tess.io/apis/admissio n.k8s.io/v1alpha1/ ns-mutating
+	failurePolicy: Fail
+	name: ns-mutating.webhook.k8s.io namespaceSelector: {}
+	rules:
+	- apiGroups:
+    - ""
+    apiVersions:
+    - '*'
+    operations:
+    - CREATE
+    resources:
+    - nodes
+  sideEffects: Unknown
+```
+
+#### 配额管理
+
+资源有限，需要限制某个用户有多少资源
+
+方案：
+
+1. 预定义每个 Namespace 的 ResourceQuota，并把 spec 保存为 configmap
+   - 用户可以创建多少个 Pod
+     - BestEffortPod
+     - QoSPod
+   - 用户可以创建多少个 Service
+   - 用户可以创建多少个 Ingress
+   - 用户可以创建多少个 Service VIP
+2. 创建ResourceQuota Controller
+   - 监控 namespace 创建事件，当 namespace 创建时，在该 namespace 创建对应的 ResourceQuota 对象
+3. apiserver 中开启 ResourceQuota 的 admission plugin
