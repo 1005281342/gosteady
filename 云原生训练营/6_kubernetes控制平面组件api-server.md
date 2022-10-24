@@ -255,3 +255,80 @@ webhooks:
 2. 创建ResourceQuota Controller
    - 监控 namespace 创建事件，当 namespace 创建时，在该 namespace 创建对应的 ResourceQuota 对象
 3. apiserver 中开启 ResourceQuota 的 admission plugin
+
+## 限流
+
+### 计数器固定窗口算法
+
+对一段固定时间窗口内的请求进行计数，如果请求超过了阈值，则舍弃该请求；如果没有达到设定的阈值，则接受该请求，且计数加1。当时间窗口结束时，重置计数器为0。
+
+![](6_kubernetes控制平面组件api-server.assets/image-20221024151347593.png)
+
+### 计数器滑动窗口算法
+
+在固定窗口的基础上，将一个计时窗口分成了若干个小窗口，然后每个小窗口维护一个独立的计数器。
+
+当请求的时间大于当前窗口的最大时间时，则将计时窗口向前平移一个小窗口。
+
+平移时，将第一个小窗口的数据丢弃，然后将第二个小窗口设置为第一个小窗口，同时在最后面新增一个小窗口，将新的请求放在新增的小窗口中。
+
+同时要保证整个窗口中所有小窗口的请求数目之和不能超过设定的阈值。
+
+<img src="6_kubernetes控制平面组件api-server.assets/image-20221024152257550.png" style="zoom:50%;" />
+
+### 漏斗算法
+
+请求来了会先进入到漏斗，然后漏斗以恒定的速率将请求流出进行处理，从而起到平滑流量的作用。
+
+当请求的流量过大时，漏斗达到最大容量时会移除，此时请求被丢弃。
+
+**在系统看来，请求永远是以平滑的传输速率过来，从而起到了保护系统的作用**
+
+<img src="6_kubernetes控制平面组件api-server.assets/image-20221024162131653.png" style="zoom:50%;" />
+
+### 令牌桶算法
+
+令牌桶算法是对漏斗算法的一种改进，除了能够起到限流的作用外，还允许一定程度的流量突发。
+
+在令牌桶算法中，存在一个令牌桶，算法中存在一种机制以恒定的速率向令牌桶中放入令牌。
+
+令牌桶也有一定的容量，如果满了令牌就无法放进去了。
+
+当请求来时，会首先到令牌桶中去拿令牌，如果拿到了令牌，则该请求会被处理，并消耗掉拿到的令牌，如果令牌桶为空，则该请求会被丢弃（没有获得令牌）。
+
+<img src="6_kubernetes控制平面组件api-server.assets/image-20221024162623730.png" style="zoom:50%;" />
+
+### APIServer 中的限流
+
+`max-requests-inflight`：在给定时间内的最大 `non-mutating` 请求数
+
+`max-mutating-requests-inflight`：在给定时间内的最大 `mutating` 请求数，调整 `apiserver` 的流控 `qos`
+
+代码见：staging/src/k8s.io/apiserver/pkg/server/filters/maxinflight.go:WithMaxInFlightLimit()
+
+
+
+### 传统限流方法的局限性
+
+- 粒度粗：无法为不同用户，不同场景设置不同的限流
+- 单队列：共享限流窗口/桶，一个坏用户可能会将整个系统堵塞，其他正常用户的请求无法被及时处理
+- 不公平：正常用户的请求会被拍到队尾而被坏用户的请求堵塞，无法及时处理而饿死
+- 无优先级：重要的系统指令一并被限流，系统故障难以恢复
+
+
+
+### API Priority and Fairness（APF）
+
+具有`多等级`和`多队列`：
+
+- 以更细粒度的方式对请求进行分类和隔离
+- 引入了空间有限的排队机制，可以缓冲一定程度的突发流量
+- 通过使用公平排队技术从队列中分发请求，避免一个行为不佳的控制器导致其他控制器饥饿
+- APF 对请求进行更细粒度的分类，每一个请求分类对应一个 FlowSchema（FS）
+- FS 内的请求会根据 distinguisher 进一步划分为不同的 Flow
+- FS 会设置一个优先级（Priority Level，PL），不同优先级的并发资源是隔离的，不同优先级的资源不会相互排斥。
+- 一个 PL 可以对应多个 FS，PL 中维护了一个 QueueSet，用于缓存不能及时处理的请求，请求不会因为超出 PL 的并发限制而被丢弃。
+- FS 中的每个 Flow 通过 shuffle shading 算法从 QueueSet 选取特定的 queues 缓存请求
+- 每次从 QueueSet 中取请求执行时，会先应用 fair queuing 算法从 QueueSet 中选择一个 queue，然后从这个 queue 中取出 oldest 请求执行。即使是同一个 PL 内的请求，也不会出现一个 Flow 内的请求一致占用资源的不公平现象。
+
+![](6_kubernetes控制平面组件api-server.assets/image-20221024222814472.png)
