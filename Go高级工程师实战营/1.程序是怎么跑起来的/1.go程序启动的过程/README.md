@@ -5,7 +5,15 @@
    ```dockerfile
    FROM centos
    
-   RUN yum install golang -y \ 
+   RUN cd /etc/yum.repos.d/ \
+   
+   && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
+   
+   && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
+   
+   && yum update -y \
+   
+   && yum install golang -y \ 
    
    && yum install dlv -y \
    
@@ -14,6 +22,8 @@
    && yum install vim -y \ 
    
    && yum install gdb -y
+   
+   # 参考 https://www.idcbuy.net/it/linux/2428.html
    ```
 
 2. docker build -t test .
