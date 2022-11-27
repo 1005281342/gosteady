@@ -254,3 +254,30 @@ exit_group(0)                           = ?
 
 可以设置 `-c`查看程序生命周期内的系统调用统计
 
+
+
+## Go 语言中的系统调用
+
+### 阻塞和非阻塞系统调用
+
+在 go 中区分了阻塞和非阻塞的系统调用。
+
+![](README.assets/image-20221127175843152.png)
+
+Syscall6 表示系统调用参数为6个，很多系统接口也有类似的命名法，如 wait4，accept4
+
+
+
+阻塞的系统调用需要修改 P 的状态，从`running` 修改为 `syscall`，这样在 sysmon 中才能发现这个 P 已经在 syscall 状态阻塞了。
+
+![](README.assets/image-20221127203558756.png)
+
+在 go 中通过 `runtime.entersyscall` 修改状态为 `syscall`。
+
+对于 rawsyscall 是不会调用 `runtime.entersyscall` 的，因此不会阻塞，也就不会被 sysmon 监控。
+
+
+
+### VDSO 优化
+
+内核负责，自动映射值到用户空间，无需从用户态切换到内核态
