@@ -6,6 +6,22 @@
 
 ![](README.assets/截屏2021-12-25 下午5.07.25.png)
 
+词法分析：
+
+语法分析：生成抽象语法树 AST
+
+语义分析：在抽象语法树 AST 上做类型检查
+
+中间代码生成：
+
+中间代码优化：
+
+- SSA（Single Static Assignment）静态赋值语句：
+  - Static：每个变量只能赋值一次（或许叫常量更合适）
+  - Single：每个表达式只能做一个简单的运算，对于复杂的表达式 `a*b + c*d` 要拆分成：`t0=a*b; t1=c*d; t2=t0+t1` 三个简单表达式。
+
+机器码生成：生成汇编代码
+
 相关工具：
 
 语法分析工具：https://astexplorer.net/
@@ -48,7 +64,7 @@ func main() {
 
 #### 链接后产生可执行文件：
 
-使用go build x.go完成变异，然后通过`go tool objdump ./x | grep "x.go"`查看编译并链接后的汇编代码
+使用go build x.go完成编译，然后通过`go tool objdump ./x | grep "x.go"`查看编译并链接后的汇编代码
 
 ```text
 TEXT main.main(SB) /x.go
@@ -83,13 +99,69 @@ objdump是把可执行文件反汇编得到汇编代码
 
 #### 通过调试工具查看编译链接后的汇编代码
 
+[dlv 调试工具文档](https://github.com/go-delve/delve/tree/master/Documentation/cli)
+
 `readelf -h ./x`查看入口地址
 
 `dlv exec ./x`开始调试
 
 `b *0x45cd80`
 
-`disass`
+使用 `c（continue）`从一个断点到下一个断点
+
+使用`si`到`JMP`目标位置
+
+使用`disass`反汇编
+
+### 如何找到 make 实现代码
+
+通过官方 spec 查询怎么使用 https://golang.org/ref/spec
+
+![](README.assets/image-20221203171451608.png)
+
+```go
+package main
+
+func main() {
+	// make slice
+	// 空间开的比较大，是为了让这个 slice 分配在堆上，栈上的 slice 结果不太一样
+	var sl = make([]int, 100000)
+	println(sl)
+
+	// make channel
+	var ch = make(chan int, 5)
+	println(ch)
+
+	// make map
+	var m = make(map[int]int, 22)
+	println(m)
+}
+
+// go build make.go && go tool objdump ./make | grep -E "make.go:6|make.go:10|make.go:14"
+```
+
+```
+	make.go:6             0x1053f78               488d0541400000          LEAQ type.*+16000(SB), AX               
+  make.go:6             0x1053f7f               bba0860100              MOVL $0x186a0, BX                       
+  make.go:6             0x1053f84               4889d9                  MOVQ BX, CX                             
+  make.go:6             0x1053f87               e8b4b2feff              CALL runtime.makeslice(SB)              
+  make.go:6             0x1053f8c               4889442428              MOVQ AX, 0x28(SP)                       
+  make.go:10            0x1053fb2               488d05873e0000          LEAQ type.*+15616(SB), AX               
+  make.go:10            0x1053fb9               bb05000000              MOVL $0x5, BX                           
+  make.go:10            0x1053fbe               6690                    NOPW                                    
+  make.go:10            0x1053fc0               e8bbf4faff              CALL runtime.makechan(SB)               
+  make.go:10            0x1053fc5               4889442420              MOVQ AX, 0x20(SP)                       
+  make.go:14            0x1053fe5               440f117c2430            MOVUPS X15, 0x30(SP)                    
+  make.go:14            0x1053feb               440f117c2440            MOVUPS X15, 0x40(SP)                    
+  make.go:14            0x1053ff1               440f117c2450            MOVUPS X15, 0x50(SP)                    
+  make.go:14            0x1053ff7               488d05c2580000          LEAQ type.*+22400(SB), AX               
+  make.go:14            0x1053ffe               bb16000000              MOVL $0x16, BX                          
+  make.go:14            0x1054003               488d4c2430              LEAQ 0x30(SP), CX                       
+  make.go:14            0x1054008               e87377fbff              CALL runtime.makemap(SB)                
+  make.go:14            0x105400d               4889442418              MOVQ AX, 0x18(SP)         
+```
+
+从汇编代码中，可以看见分别由 `runtime.makeslice`、`runtime.makechan`、`runtime.makemap` 实现。
 
 ## 语法实现分析
 
