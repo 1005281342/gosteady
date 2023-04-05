@@ -34,6 +34,12 @@ sched.Algorithm.Schedule（genericScheduler通用调度器）
 
 
 
+## 调度框架
+
+### 实体对象
+
+在`pkg/scheduler/framework/runtime/framework.go`中
+
 ## 参考
 
 [Kubernetes Scheduler 设计与实现](https://www.bilibili.com/video/BV1N7411w7M9?vd_source=261fdf90969b104ee0e32522eed85cba)
